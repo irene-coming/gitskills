@@ -14,12 +14,12 @@
 using namespace std;
 
 int IS_DEBUG=0;
-char Host_Master[50] = "10.186.30.101";
-char Host_Uproxy[50] = "10.186.30.93";
+char Host_Master[50] = "172.100.9.5";
+char Host_Uproxy[50] = "172.100.9.1";
 char TEST_USER[100]="test";
 char TEST_USER_PASSWD[100]="111111";
 char TEST_DB[50]="mytest";
-unsigned int PORT=19388;
+unsigned int PORT=3306;
 unsigned int MPORT=8066;
 
 int doPrintResult(MYSQL* mysql, MYSQL_RES  *res){
@@ -33,18 +33,16 @@ int doPrintResult(MYSQL* mysql, MYSQL_RES  *res){
     num_fields = mysql_num_fields(res);             //获取查询结果中，字段的个数
     fields = mysql_fetch_fields(res);
     //获取查询结果中，各个字段的名字
-    if(IS_DEBUG){
-        for(i = 0; i < num_fields;i++)
-        {
-            //mysql_fetch_field_direct
-            field = mysql_fetch_field_direct(res, i);
-            printf("result field %u:  %s\n",i,field->name);
-        }
+    for(i = 0; i < num_fields;i++)
+    {
+        //mysql_fetch_field_direct
+        field = mysql_fetch_field_direct(res, i);
+        printf("result field %u:  %s\n",i,field->name);
     }
 
     //print result lines
     unsigned long num_rows = mysql_num_rows(res);
-    if(IS_DEBUG){ printf("Number of rows %lu\n", num_rows);}
+    printf("Number of rows %lu\n", num_rows);
     if(num_rows>1024)
     {
         printf("MAXIPLIST is not enough！\n");
@@ -54,12 +52,10 @@ int doPrintResult(MYSQL* mysql, MYSQL_RES  *res){
     while(row=mysql_fetch_row(res))
     {
         lengths = mysql_fetch_lengths(res);
-        if(IS_DEBUG){
-            for(i = 0; i < num_fields;i++){
-                printf("field %d: %-20s, length:%lu",i,row[i], lengths[i]);
-            }
+        for(i = 0; i < num_fields;i++){
+            printf("field %d: %-20s, length:%lu",i,row[i], lengths[i]);
         }
-        if(IS_DEBUG){ printf("\n");}
+        printf("\n");
     }
     return num_rows;
 }
@@ -71,7 +67,7 @@ int printResult(MYSQL* mysql){
     int status = doPrintResult(mysql, res);
     mysql_free_result(res);
     return status;
-    }
+}
 
 void case_mysql_real_connect(){
     printf("==>c_api_quick_test \n");
@@ -81,9 +77,9 @@ void case_mysql_real_connect(){
     mysql_options(test_conn,MYSQL_READ_DEFAULT_GROUP,"odbc");
     mysql_options(test_conn,MYSQL_INIT_COMMAND,"SET autocommit=1");
     if(IS_DEBUG){
-        mysql_real_connect(test_conn, Host_Master, TEST_USER, TEST_USER_PASSWD, NULL, PORT,NULL, CLIENT_DEPRECATE_EOF|CLIENT_MULTI_STATEMENTS);
+        mysql_real_connect(test_conn, Host_Master, TEST_USER, TEST_USER_PASSWD, TEST_DB, PORT,NULL, CLIENT_DEPRECATE_EOF|CLIENT_MULTI_STATEMENTS);
     }else{
-        mysql_real_connect(test_conn, Host_Uproxy, TEST_USER, TEST_USER_PASSWD, NULL, MPORT,NULL, CLIENT_DEPRECATE_EOF|CLIENT_MULTI_STATEMENTS);
+        mysql_real_connect(test_conn, Host_Uproxy, TEST_USER, TEST_USER_PASSWD, TEST_DB, MPORT,NULL, CLIENT_DEPRECATE_EOF|CLIENT_MULTI_STATEMENTS);
     }
 
     if (test_conn == NULL) {
@@ -97,7 +93,7 @@ void case_mysql_real_connect(){
     //case: multi query, and multi resultsets
     /* execute multiple statements */
     int status = mysql_query(test_conn,
-                         "use mytest /*master*/ ; \
+                          "use mytest /*master*/ ; \
                           DROP TABLE IF EXISTS test_table;\
                           CREATE TABLE test_table(id INT);\
                           INSERT INTO test_table VALUES(10);\
@@ -105,7 +101,7 @@ void case_mysql_real_connect(){
                           INSERT INTO test_table VALUES(30);\
                           UPDATE test_table SET id=20 WHERE id=10;\
                           SELECT * FROM test_table;");
-    if (status)
+       if (status)
     {
       printf("execute multi statement(s) Err, %s \n", mysql_error(test_conn));
       mysql_close(test_conn);
@@ -116,7 +112,7 @@ void case_mysql_real_connect(){
 
     printf("        print multi resultsets:\n");
     /* process each statement result */
-        do {
+    do {
         /* did current statement return data? */
         MYSQL_RES  *result = mysql_store_result(test_conn);
         if (result)
